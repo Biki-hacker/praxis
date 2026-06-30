@@ -67,6 +67,10 @@ The platform features server-side AI logic using the modern `@google/genai` Type
 *   **Predictive Inference**: Gemini evaluates clusters of active "open" issues (e.g., repeating low water pressure reports combined with minor road cracks) to warn authorities of imminent structural failures before they become severe hazards.
 *   **Severity Assessment**: Dynamically generates severity flags (Low, Medium, High, Critical) using LLM reasoning to help dispatch teams prioritize their daily pipeline.
 
+### 5. Google Workspace Integration Hub & Project Documentation
+*   **On-Demand Hackathon Documentation**: Seamlessly compiles a professional, high-fidelity project specification sheet directly inside your personal Google Docs and Google Drive.
+*   **Accessing the Document**: Navigate to the **Impact Analytics** tab from the main navigation menu, scroll down to the **📝 Google Workspace Integration Hub**, sign in / authorize using your Google account, and click the **Authorize & Generate Project Doc** button. The system will programmatically draft, format with executive styling, and establish public read-only view permissions, providing an immediate clickable redirection link.
+
 ---
 
 ## 📂 Exhaustive Data Schemas & API Reference

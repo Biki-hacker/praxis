@@ -4,7 +4,10 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell
 } from 'recharts';
-import { TrendingUp, Cpu, Sparkles, AlertTriangle, Loader2 } from 'lucide-react';
+import { TrendingUp, Cpu, Sparkles, AlertTriangle, Loader2, FileText, CheckCircle2, Globe, ExternalLink } from 'lucide-react';
+import { getFirebase, googleProvider } from '../firebase';
+import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { generateProjectDoc } from '../utils/workspace';
 
 export const Analytics: React.FC = () => {
   const { issues } = useAppStore();
@@ -12,6 +15,45 @@ export const Analytics: React.FC = () => {
   const [predictions, setPredictions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [predictionsLoading, setPredictionsLoading] = useState(false);
+
+  // Google Workspace Hub States
+  const [docGenerating, setDocGenerating] = useState(false);
+  const [docResult, setDocResult] = useState<any>(null);
+  const [docError, setDocError] = useState<string | null>(null);
+  const [workspaceAuthToken, setWorkspaceAuthToken] = useState<string | null>(null);
+
+  const handleGenerateDoc = async () => {
+    setDocError(null);
+    setDocGenerating(true);
+    try {
+      let token = workspaceAuthToken;
+      
+      if (!token) {
+        // Authenticate/Authorize Google Docs scopes
+        const { auth } = await getFirebase();
+        // Add required scopes
+        googleProvider.addScope('https://www.googleapis.com/auth/documents');
+        googleProvider.addScope('https://www.googleapis.com/auth/drive.file');
+        
+        const result = await signInWithPopup(auth, googleProvider);
+        const credential = GoogleAuthProvider.credentialFromResult(result);
+        token = credential?.accessToken || null;
+        
+        if (!token) {
+          throw new Error('Could not obtain your Google OAuth access token. Please authorize Google sign-in.');
+        }
+        setWorkspaceAuthToken(token);
+      }
+      
+      const res = await generateProjectDoc(token);
+      setDocResult(res);
+    } catch (err: any) {
+      console.error('Error generating document:', err);
+      setDocError(err.message || 'Verification or authorization failed.');
+    } finally {
+      setDocGenerating(false);
+    }
+  };
 
   const getAnalytics = async () => {
     try {
@@ -283,6 +325,110 @@ export const Analytics: React.FC = () => {
         )}
       </div>
 
+      {/* GOOGLE WORKSPACE DOCUMENTATION GENERATOR */}
+      <div className="mt-8 bg-bg-surface border border-ink-primary/5 rounded-2xl p-6 shadow-sm text-left relative overflow-hidden">
+        {/* Glow accent */}
+        <div className="absolute -right-24 -bottom-24 w-48 h-48 rounded-full bg-brand-primary/5 blur-3xl pointer-events-none" />
+
+        <div className="flex items-start gap-4 flex-col md:flex-row md:items-center justify-between pb-4 border-b border-ink-primary/5 mb-5">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-brand-light text-brand-primary rounded-2xl shadow-inner shrink-0">
+              <FileText size={22} />
+            </div>
+            <div>
+              <h3 className="font-display font-black text-lg text-ink-primary flex items-center gap-1.5 leading-none mb-1">
+                📝 Google Workspace Integration Hub
+              </h3>
+              <p className="text-[11px] text-ink-muted">Generate certified documentation directly in your Google Docs and Google Drive</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 text-[9px] bg-bg-sunken border border-ink-primary/5 px-2.5 py-1 rounded-full font-mono font-bold text-ink-muted leading-none">
+            <Globe size={11} className="text-brand-primary" />
+            LIVE OAUTH PROTOCOL ENABLED
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+          <div className="lg:col-span-7 flex flex-col gap-2.5 text-xs text-ink-secondary leading-relaxed font-light">
+            <p>
+              Under evaluation rules, you must submit an authoritative project description of your selected challenge and technical architecture. Praxis automates this completely! Connect your Google Account to automatically author a pre-structured Google Document directly on your workspace.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+              <div className="flex items-center gap-2 font-mono text-[10px] text-ink-muted">
+                <CheckCircle2 size={12} className="text-status-resolved shrink-0" />
+                <span>Problem Statement selected</span>
+              </div>
+              <div className="flex items-center gap-2 font-mono text-[10px] text-ink-muted">
+                <CheckCircle2 size={12} className="text-status-resolved shrink-0" />
+                <span>Full Solutions Overview</span>
+              </div>
+              <div className="flex items-center gap-2 font-mono text-[10px] text-ink-muted">
+                <CheckCircle2 size={12} className="text-status-resolved shrink-0" />
+                <span>Technologies and SDK specs</span>
+              </div>
+              <div className="flex items-center gap-2 font-mono text-[10px] text-ink-muted">
+                <CheckCircle2 size={12} className="text-status-resolved shrink-0" />
+                <span>Configured to public access link</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="lg:col-span-5 flex flex-col gap-3 items-stretch sm:items-end w-full">
+            {docGenerating ? (
+              <div className="bg-bg-sunken border border-ink-primary/5 p-4 rounded-xl flex items-center gap-3 w-full justify-center">
+                <Loader2 className="animate-spin text-brand-primary" size={16} />
+                <div className="flex flex-col text-left">
+                  <span className="text-xs font-bold text-brand-primary leading-none mb-1 animate-pulse font-mono">DRAFTING GOOGLE DOC...</span>
+                  <span className="text-[10px] text-ink-muted leading-none">Writing template and configuring public Drive view link</span>
+                </div>
+              </div>
+            ) : docResult ? (
+              <div className="w-full flex flex-col gap-3">
+                <div className="bg-status-resolved-bg/10 border border-status-resolved/10 p-3.5 rounded-xl flex gap-2 w-full text-left">
+                  <CheckCircle2 size={16} className="text-status-resolved shrink-0 mt-0.5" />
+                  <div className="flex flex-col">
+                    <span className="font-bold font-mono text-[10px] text-status-resolved leading-none mb-1 uppercase">Document Published</span>
+                    <p className="text-[11px] text-ink-secondary leading-relaxed font-light">
+                      Document created in Google Docs and configured to "Anyone with the link can view" successfully.
+                    </p>
+                  </div>
+                </div>
+                <a
+                  href={docResult.documentUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-1.5 py-3 px-5 bg-status-resolved hover:bg-status-resolved/80 text-white font-bold text-xs rounded-full cursor-pointer transition-all w-full shadow-sm"
+                >
+                  <ExternalLink size={14} />
+                  Open Live Google Doc
+                </a>
+              </div>
+            ) : (
+              <div className="w-full flex flex-col gap-2.5">
+                {docError && (
+                  <div className="bg-status-critical-bg text-status-critical text-[11px] p-3 rounded-xl border border-status-critical/10 flex gap-2">
+                    <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                    <div className="flex flex-col">
+                      <span className="font-bold uppercase font-mono text-[9px] leading-none mb-1">Authorization Failed</span>
+                      <p className="font-light leading-normal">{docError}</p>
+                    </div>
+                  </div>
+                )}
+                
+                <button
+                  onClick={handleGenerateDoc}
+                  className="flex items-center justify-center gap-1.5 py-3.5 px-6 bg-brand-primary hover:bg-brand-dark text-white font-bold text-xs rounded-full cursor-pointer transition-all w-full shadow-sm"
+                >
+                  <FileText size={14} />
+                  Authorize & Generate Project Doc
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
     </div>
   );
 };
+

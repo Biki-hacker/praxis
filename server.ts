@@ -129,6 +129,8 @@ try {
       appId: process.env.FIREBASE_APP_ID
     };
   }
+  // Inject the specific database ID so client and server are fully aligned
+  firebaseConfig.firestoreDatabaseId = firebaseConfig.firestoreDatabaseId || process.env.FIREBASE_DATABASE_ID || "ai-studio-e5c2e71b-72ff-4d6b-a791-35cdbcdc7193";
 } catch (err) {
   console.error('Error reading firebase-applet-config.json', err);
 }

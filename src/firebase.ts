@@ -36,7 +36,7 @@ export function getFirebase(): Promise<{ auth: Auth; db: Firestore }> {
         }
         
         auth = getAuth(app);
-        db = getFirestore(app, config.firestoreDatabaseId);
+        db = getFirestore(app, config.firestoreDatabaseId || "ai-studio-e5c2e71b-72ff-4d6b-a791-35cdbcdc7193");
         
         return { auth, db };
       } catch (error) {
