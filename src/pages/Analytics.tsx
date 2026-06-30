@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../store';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend
+  PieChart, Pie, Cell
 } from 'recharts';
-import { BarChart2, TrendingUp, Cpu, Sparkles, AlertTriangle, ShieldCheck, Clock, Loader2 } from 'lucide-react';
+import { TrendingUp, Cpu, Sparkles, AlertTriangle, Loader2 } from 'lucide-react';
 
 export const Analytics: React.FC = () => {
   const { issues } = useAppStore();

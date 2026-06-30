@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { useAppStore } from '../store';
 import { getIssuePlaceholderSvg } from '../utils/issuePlaceholder';
 import { 
-  UserCheck, MapPin, Calendar, Clock, CheckCircle2, ArrowRight, Sparkles, 
-  ThumbsUp, ShieldAlert, ChevronRight, CheckCircle, AlertCircle, FileText
+  UserCheck, MapPin, Clock, Sparkles, 
+  ThumbsUp, ChevronRight
 } from 'lucide-react';
 
 interface CitizenConsoleProps {
@@ -12,7 +12,7 @@ interface CitizenConsoleProps {
 }
 
 export const CitizenConsole: React.FC<CitizenConsoleProps> = ({ setCurrentTab, setSelectedIssueId }) => {
-  const { user, profile, issues, login } = useAppStore();
+  const { user, issues } = useAppStore();
   const [selectedIssue, setSelectedIssue] = useState<any>(null);
 
   // If not logged in, prompt sign in

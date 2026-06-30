@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../store';
-import { Issue, TimelineEntry, Comment } from '../types';
 import { 
-  ArrowLeft, MapPin, Calendar, User, Eye, CheckCircle2, MessageSquare, 
-  Send, ThumbsUp, ShieldAlert, Clock, Sparkles, AlertCircle, Edit3 
+  ArrowLeft, MapPin, Calendar, MessageSquare, 
+  Send, ThumbsUp, Sparkles, AlertCircle
 } from 'lucide-react';
 import { getAvatarSvg } from '../utils/avatar';
 import { getIssuePlaceholderSvg } from '../utils/issuePlaceholder';
@@ -15,7 +14,7 @@ interface IssueDetailProps {
 
 export const IssueDetail: React.FC<IssueDetailProps> = ({ issueId, setCurrentTab }) => {
   const { 
-    user, profile, issues, addComment, verifyIssue, isDemoAccount, setIsDemoModalOpen 
+    user, issues, addComment, verifyIssue 
   } = useAppStore();
 
   const issue = issues.find((i) => i.id === issueId);

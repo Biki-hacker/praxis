@@ -1,12 +1,11 @@
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
-import { getAuth, Auth, GoogleAuthProvider, signInWithPopup, signOut as fbSignOut } from 'firebase/auth';
+import { getAuth, Auth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
 
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 let db: Firestore | null = null;
 
-let isInitializing = false;
 let initPromise: Promise<{ auth: Auth; db: Firestore }> | null = null;
 
 export function getFirebase(): Promise<{ auth: Auth; db: Firestore }> {

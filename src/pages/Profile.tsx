@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAppStore } from '../store';
-import { Shield, Award, MapPin, Calendar, Clock, Lock, CheckCircle2, ChevronRight } from 'lucide-react';
+import { Shield, Award, Calendar, Clock, Lock, ChevronRight } from 'lucide-react';
 import { getAvatarSvg } from '../utils/avatar';
 
 interface ProfileProps {

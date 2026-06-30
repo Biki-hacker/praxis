@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../store';
-import { Award, Zap, Trophy, Shield, User, Loader2, RefreshCw } from 'lucide-react';
+import { Zap, Trophy, Shield, Loader2, RefreshCw } from 'lucide-react';
 import { getAvatarSvg } from '../utils/avatar';
 
 export const Leaderboard: React.FC = () => {
@@ -83,7 +83,6 @@ export const Leaderboard: React.FC = () => {
           <div className="divide-y divide-ink-primary/4">
             {boardData.map((player, idx) => {
               const isCurrentUser = user && player.uid === user.uid;
-              const rank = idx + 1;
 
               return (
                 <div

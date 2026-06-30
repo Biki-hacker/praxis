@@ -3,8 +3,8 @@ import { useAppStore } from '../store';
 import { extractPhotoMetadata, getDistanceInMeters } from '../utils/exif';
 import { getIssuePlaceholderSvg } from '../utils/issuePlaceholder';
 import { 
-  Shield, CheckCircle, Clock, AlertTriangle, AlertCircle, Camera, Loader2, 
-  MapPin, Calendar, FileText, ArrowRight, CheckCircle2, ShieldCheck, RefreshCw, XCircle, Sparkles
+  Shield, CheckCircle, AlertTriangle, AlertCircle, Camera, Loader2, 
+  MapPin, Calendar, ArrowRight, CheckCircle2, ShieldCheck, RefreshCw, Sparkles
 } from 'lucide-react';
 
 interface InspectorConsoleProps {
@@ -13,7 +13,7 @@ interface InspectorConsoleProps {
 }
 
 export const InspectorConsole: React.FC<InspectorConsoleProps> = ({ setCurrentTab, setSelectedIssueId }) => {
-  const { user, profile, issues, updateIssueStatus, refreshIssues, isDemoAccount, setIsDemoModalOpen } = useAppStore();
+  const { profile, issues, updateIssueStatus, refreshIssues } = useAppStore();
   const [selectedIssue, setSelectedIssue] = useState<any>(null);
   
   // Status update states

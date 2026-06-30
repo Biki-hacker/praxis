@@ -147,7 +147,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           });
 
           // Subscribe to Supabase auth changes
-          const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+          const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, _session) => {
             if (event === 'SIGNED_OUT') {
               setUser(null);
               setProfile(null);

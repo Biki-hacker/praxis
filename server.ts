@@ -15,11 +15,9 @@ import {
   addDoc,
   updateDoc,
   query,
-  where,
   orderBy,
   limit,
-  increment,
-  arrayUnion
+  increment
 } from 'firebase/firestore';
 
 const app = express();
@@ -216,7 +214,7 @@ async function generateGeminiContent(params: {
 // Endpoints
 
 // GET /api/firebase-config
-app.get('/api/firebase-config', (req, res) => {
+app.get('/api/firebase-config', (_req, res) => {
   res.json(firebaseConfig);
 });
 
@@ -375,7 +373,7 @@ app.post('/api/users/sync', async (req, res) => {
 });
 
 // GET /api/issues
-app.get('/api/issues', async (req, res) => {
+app.get('/api/issues', async (_req, res) => {
   try {
     const issuesCol = collection(db, 'issues');
     const q = query(issuesCol, orderBy('reportedAt', 'desc'));
@@ -895,7 +893,7 @@ Do not include markdown, code fences, or any other wrapper. Return only the raw 
 
 // POST /api/gemini/predict-hotspots
 app.post('/api/gemini/predict-hotspots', async (req, res) => {
-  const { lat, lng, radiusKm, recentIssues } = req.body;
+  const { lat, lng, recentIssues } = req.body;
   
   try {
     console.log('Generating predictive hotspots via Gemini...');
@@ -973,7 +971,7 @@ app.post('/api/gemini/predict-hotspots', async (req, res) => {
 });
 
 // GET /api/analytics/summary
-app.get('/api/analytics/summary', async (req, res) => {
+app.get('/api/analytics/summary', async (_req, res) => {
   try {
     const issuesCol = collection(db, 'issues');
     const snap = await getDocs(issuesCol);
@@ -1021,7 +1019,7 @@ app.get('/api/analytics/summary', async (req, res) => {
 });
 
 // GET /api/leaderboard
-app.get('/api/leaderboard', async (req, res) => {
+app.get('/api/leaderboard', async (_req, res) => {
   try {
     const usersCol = collection(db, 'users');
     const q = query(usersCol, orderBy('xp', 'desc'), limit(15));
@@ -1317,7 +1315,7 @@ async function seedDatabaseIfEmpty() {
 seedDatabaseIfEmpty();
 
 // Global error handler
-app.use((err: any, req: any, res: any, next: any) => {
+app.use((err: any, _req: any, res: any, _next: any) => {
   const logFile = path.join(process.cwd(), 'server.log');
   const errorLog = `[${new Date().toISOString()}] ERROR: ${err.message}\nStack: ${err.stack}\n`;
   try {
@@ -1338,7 +1336,7 @@ if (process.env.NODE_ENV !== 'production') {
 } else {
   const distPath = path.join(process.cwd(), 'dist');
   app.use(express.static(distPath));
-  app.get('*', (req, res) => {
+  app.get('*', (_req, res) => {
     res.sendFile(path.join(distPath, 'index.html'));
   });
 }

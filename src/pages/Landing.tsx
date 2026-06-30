@@ -1,31 +1,14 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useAppStore } from '../store';
 import { Globe3D } from '../components/Globe3D';
-import { ArrowRight, Camera, Cpu, Users, Shield, TrendingUp, CheckCircle, AlertTriangle } from 'lucide-react';
+import { ArrowRight, Camera, Cpu, Users, Shield } from 'lucide-react';
 
 interface LandingProps {
   setCurrentTab: (tab: string) => void;
 }
 
 export const Landing: React.FC<LandingProps> = ({ setCurrentTab }) => {
-  const { user, login, issues } = useAppStore();
-  const [error, setError] = useState<string | null>(null);
-
-  const handleLandingLogin = async () => {
-    setError(null);
-    try {
-      await login();
-    } catch (err: any) {
-      console.error('Landing login error:', err);
-      if (err.code === 'auth/popup-closed-by-user' || err.message?.includes('popup-closed-by-user')) {
-        setError(
-          "Google Sign-In popup was closed or blocked. If you are using the embedded preview, please open the app in a new tab by clicking the 'Open in New Tab' button in the top right corner of the preview, as browsers restrict popups inside iframes. Also make sure to allow popups in your browser settings."
-        );
-      } else {
-        setError(err.message || 'Google authentication failed.');
-      }
-    }
-  };
+  const { user, issues } = useAppStore();
 
   const liveStats = [
     { label: 'Issues Reported', value: '1,247' },
@@ -86,16 +69,6 @@ export const Landing: React.FC<LandingProps> = ({ setCurrentTab }) => {
           <p className="text-base md:text-lg text-ink-secondary max-w-xl font-light leading-relaxed mb-8">
             Praxis turns citizen voices into infrastructure action. Powered by AI, realtime maps, and local community trust.
           </p>
-
-          {error && (
-            <div className="mb-6 bg-status-critical-bg text-status-critical text-xs p-3.5 rounded-xl border border-status-critical/10 flex gap-2 max-w-xl">
-              <AlertTriangle size={14} className="shrink-0 mt-0.5" />
-              <div className="flex flex-col">
-                <span className="font-bold uppercase font-mono text-[10px] leading-none mb-1">Sign-In Failed</span>
-                <p className="font-light leading-normal">{error}</p>
-              </div>
-            </div>
-          )}
 
           <div className="flex flex-col sm:flex-row gap-3.5 items-stretch sm:items-center">
             {user ? (

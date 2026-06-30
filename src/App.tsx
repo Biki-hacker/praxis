@@ -18,7 +18,7 @@ const MainApp: React.FC = () => {
   const [selectedIssueId, setSelectedIssueId] = useState<string>('');
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
-  const { user, isDemoModalOpen, setIsDemoModalOpen } = useAppStore();
+  const { isDemoModalOpen, setIsDemoModalOpen } = useAppStore();
 
   const handleOpenReportModal = () => {
     setIsReportModalOpen(true);

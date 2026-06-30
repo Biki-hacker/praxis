@@ -6,8 +6,8 @@ import L from 'leaflet';
 import { ThreeOverlay } from '../components/ThreeOverlay';
 import { Issue } from '../types';
 import { 
-  Search, Filter, Map, Box, Flame, AlertCircle, 
-  MapPin, Clock, ArrowRight, CheckCircle2, RefreshCw, Plus, ChevronDown, Check
+  Search, Map, Box, AlertCircle, 
+  MapPin, ArrowRight, RefreshCw, Plus, ChevronDown, Check
 } from 'lucide-react';
 
 interface DashboardProps {

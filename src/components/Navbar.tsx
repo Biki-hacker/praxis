@@ -10,7 +10,7 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, openReportModal }) => {
-  const { user, profile, login, logout } = useAppStore();
+  const { user, profile, logout } = useAppStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isAuthority = profile?.role === 'authority' || profile?.role === 'admin';

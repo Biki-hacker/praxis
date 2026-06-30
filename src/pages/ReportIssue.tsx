@@ -4,8 +4,8 @@ import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import confetti from 'canvas-confetti';
 import { 
-  Camera, MapPin, CheckCircle, Cpu, Loader2, ArrowRight, ArrowLeft, 
-  Sparkles, Sliders, Check, HelpCircle, FileText, AlertTriangle, ChevronDown, AlertCircle
+  Camera, CheckCircle, Cpu, Loader2, ArrowRight, ArrowLeft, 
+  Sparkles, Check, AlertTriangle, ChevronDown, AlertCircle
 } from 'lucide-react';
 import { extractPhotoMetadata, getDistanceInMeters } from '../utils/exif';
 import { getIssuePlaceholderSvg } from '../utils/issuePlaceholder';
@@ -121,7 +121,7 @@ const SAMPLE_TEST_IMAGES = [
 ];
 
 export const ReportIssue: React.FC<ReportIssueProps> = ({ setCurrentTab, closeModal }) => {
-  const { user, refreshIssues, isDemoAccount, setIsDemoModalOpen } = useAppStore();
+  const { user, refreshIssues, isDemoAccount } = useAppStore();
   const [step, setStep] = useState(1);
 
   // Form states
