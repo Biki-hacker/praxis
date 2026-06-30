@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../store';
 import { Shield, MapPin, BarChart2, Award, User as UserIcon, LogOut, Plus, Menu, X } from 'lucide-react';
+import { getAvatarSvg } from '../utils/avatar';
 
 interface NavbarProps {
   currentTab: string;
@@ -18,6 +19,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, openR
     ? [
         { id: 'dashboard', label: 'Map Dashboard', icon: MapPin },
         { id: 'admin-console', label: 'Inspector Console', icon: Shield },
+        { id: 'leaderboard', label: 'Leaderboard', icon: Award },
         ...(user ? [{ id: 'profile', label: 'Official Profile', icon: UserIcon }] : []),
       ]
     : [
@@ -83,11 +85,12 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, openR
               
               <div className="flex items-center gap-2 pl-2 border-l border-ink-primary/10">
                 <img 
-                  src={profile?.photoURL || user.photoURL || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150'} 
+                  src={getAvatarSvg(profile?.displayName || user.displayName || 'Citizen', profile?.email || user.email)} 
                   alt="Avatar" 
-                  className={`w-8 h-8 rounded-full border-2 ${isAuthority ? 'border-status-critical' : 'border-brand-primary'}`}
+                  className={`w-8 h-8 rounded-full border-2 ${isAuthority ? 'border-status-critical' : 'border-brand-primary'} cursor-pointer`}
                   onClick={() => setCurrentTab('profile')}
                   title="View Profile"
+                  referrerPolicy="no-referrer"
                 />
                 <div className="flex flex-col text-left">
                   <span className="text-xs font-bold text-ink-primary leading-tight max-w-[100px] truncate">
@@ -172,9 +175,10 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab, openR
             <div className="flex items-center justify-between p-1">
               <div className="flex items-center gap-2.5" onClick={() => { setCurrentTab('profile'); setMobileMenuOpen(false); }}>
                 <img 
-                  src={profile?.photoURL || user.photoURL || ''} 
+                  src={getAvatarSvg(profile?.displayName || user.displayName || 'Citizen', profile?.email || user.email)} 
                   alt="Avatar" 
                   className={`w-9 h-9 rounded-full border-2 ${isAuthority ? 'border-status-critical' : 'border-brand-primary'}`}
+                  referrerPolicy="no-referrer"
                 />
                 <div className="flex flex-col text-left">
                   <span className="text-sm font-bold text-ink-primary">

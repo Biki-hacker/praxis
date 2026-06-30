@@ -8,6 +8,7 @@ import {
   Sparkles, Sliders, Check, HelpCircle, FileText, AlertTriangle, ChevronDown, AlertCircle
 } from 'lucide-react';
 import { extractPhotoMetadata, getDistanceInMeters } from '../utils/exif';
+import { getIssuePlaceholderSvg } from '../utils/issuePlaceholder';
 
 interface ReportIssueProps {
   setCurrentTab: (tab: string) => void;
@@ -99,22 +100,22 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options })
 const SAMPLE_TEST_IMAGES = [
   {
     name: 'Severe Pothole',
-    url: 'https://images.unsplash.com/photo-1515162305285-0293e4767cc2?auto=format&fit=crop&w=300',
+    url: getIssuePlaceholderSvg('pothole'),
     promptName: 'pothole'
   },
   {
     name: 'Water pipe leak',
-    url: 'https://images.unsplash.com/photo-1542013936693-8848e5740475?auto=format&fit=crop&w=300',
+    url: getIssuePlaceholderSvg('water'),
     promptName: 'water_leak'
   },
   {
     name: 'Dumped Garbage Pile',
-    url: 'https://images.unsplash.com/photo-1611284446314-60a58ac0deb9?auto=format&fit=crop&w=300',
+    url: getIssuePlaceholderSvg('garbage'),
     promptName: 'garbage_dump'
   },
   {
     name: 'Broken Streetlight',
-    url: 'https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=300',
+    url: getIssuePlaceholderSvg('light'),
     promptName: ' streetlight'
   }
 ];
@@ -349,10 +350,6 @@ export const ReportIssue: React.FC<ReportIssueProps> = ({ setCurrentTab, closeMo
 
   // Submit complete report to Express server
   const handleSubmitReport = async () => {
-    if (isDemoAccount) {
-      setIsDemoModalOpen(true);
-      return;
-    }
     if (photoLat && photoLng) {
       const dist = getDistanceInMeters(pinLat, pinLng, photoLat, photoLng);
       if (dist > 200) {
@@ -381,7 +378,8 @@ export const ReportIssue: React.FC<ReportIssueProps> = ({ setCurrentTab, closeMo
           reportedByPhoto: user?.photoURL || '',
           aiCategoryConfidence: aiAnalysisResult?.confidence || 0.9,
           aiTags: aiTags,
-          aiDescription: aiAnalysisResult?.description || ''
+          aiDescription: aiAnalysisResult?.description || '',
+          isDemo: isDemoAccount
         })
       });
 

@@ -84,7 +84,7 @@ export const Landing: React.FC<LandingProps> = ({ setCurrentTab }) => {
           </h1>
 
           <p className="text-base md:text-lg text-ink-secondary max-w-xl font-light leading-relaxed mb-8">
-            Praxis turns citizen voices into infrastructure action. Powered by Google Gemini AI, realtime maps, and local community trust.
+            Praxis turns citizen voices into infrastructure action. Powered by AI, realtime maps, and local community trust.
           </p>
 
           {error && (

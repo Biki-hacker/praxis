@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../store';
 import { extractPhotoMetadata, getDistanceInMeters } from '../utils/exif';
+import { getIssuePlaceholderSvg } from '../utils/issuePlaceholder';
 import { 
   Shield, CheckCircle, Clock, AlertTriangle, AlertCircle, Camera, Loader2, 
   MapPin, Calendar, FileText, ArrowRight, CheckCircle2, ShieldCheck, RefreshCw, XCircle, Sparkles
@@ -145,10 +146,6 @@ export const InspectorConsole: React.FC<InspectorConsoleProps> = ({ setCurrentTa
 
   // Run AI Verification comparing before and after images
   const triggerAiResolutionAudit = async () => {
-    if (isDemoAccount) {
-      setIsDemoModalOpen(true);
-      return;
-    }
     if (!resolvedPhotoBase64 || !selectedIssue) return;
     setIsVerifying(true);
     setVerificationResult(null);
@@ -189,10 +186,6 @@ export const InspectorConsole: React.FC<InspectorConsoleProps> = ({ setCurrentTa
 
   // Submit status update to DB
   const handleStatusSubmit = async (status: 'open' | 'in_progress' | 'resolved') => {
-    if (isDemoAccount) {
-      setIsDemoModalOpen(true);
-      return;
-    }
     if (!selectedIssue) return;
     setIsSubmitting(true);
 
@@ -201,7 +194,7 @@ export const InspectorConsole: React.FC<InspectorConsoleProps> = ({ setCurrentTa
       
       // If we are resolving and have a valid base64, we can simulate save or pass it
       if (status === 'resolved') {
-        finalResolvedUrl = resolvedPhotoBase64 || 'https://images.unsplash.com/photo-1590486803833-1c5dc8ddd4c8?auto=format&fit=crop&w=400';
+        finalResolvedUrl = resolvedPhotoBase64 || getIssuePlaceholderSvg(selectedIssue.category);
       }
 
       await updateIssueStatus(
@@ -321,13 +314,11 @@ export const InspectorConsole: React.FC<InspectorConsoleProps> = ({ setCurrentTa
                     <span className="truncate">{issue.landmark || 'No Landmark'}</span>
                   </div>
 
-                  {issue.mediaUrls?.[0] && (
-                    <img 
-                      src={issue.mediaUrls[0]} 
-                      alt="Before" 
-                      className="w-full h-24 object-cover rounded-xl border border-ink-primary/5 mt-2"
-                    />
-                  )}
+                  <img 
+                    src={(issue.mediaUrls?.[0] && !issue.mediaUrls[0].includes('unsplash.com')) ? issue.mediaUrls[0] : getIssuePlaceholderSvg(issue.category)} 
+                    alt="Before" 
+                    className="w-full h-24 object-cover rounded-xl border border-ink-primary/5 mt-2"
+                  />
                 </div>
               );
             })}
@@ -353,7 +344,10 @@ export const InspectorConsole: React.FC<InspectorConsoleProps> = ({ setCurrentTa
                   <p className="text-xs text-ink-secondary font-light mt-0.5">{selectedIssue.category} Outage</p>
                 </div>
                 <button
-                  onClick={() => setSelectedIssueId(selectedIssue.id)}
+                  onClick={() => {
+                    setSelectedIssueId(selectedIssue.id);
+                    setCurrentTab('issue-detail');
+                  }}
                   className="px-3 py-1.5 bg-bg-sunken hover:bg-bg-elevated text-ink-secondary text-[10px] font-bold rounded-full transition-all flex items-center gap-1 cursor-pointer"
                 >
                   Deep Dive View <ArrowRight size={10} />

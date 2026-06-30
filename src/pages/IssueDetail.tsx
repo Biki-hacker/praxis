@@ -5,6 +5,8 @@ import {
   ArrowLeft, MapPin, Calendar, User, Eye, CheckCircle2, MessageSquare, 
   Send, ThumbsUp, ShieldAlert, Clock, Sparkles, AlertCircle, Edit3 
 } from 'lucide-react';
+import { getAvatarSvg } from '../utils/avatar';
+import { getIssuePlaceholderSvg } from '../utils/issuePlaceholder';
 
 interface IssueDetailProps {
   issueId: string;
@@ -13,15 +15,13 @@ interface IssueDetailProps {
 
 export const IssueDetail: React.FC<IssueDetailProps> = ({ issueId, setCurrentTab }) => {
   const { 
-    user, profile, issues, addComment, verifyIssue, updateIssueStatus, isDemoAccount, setIsDemoModalOpen 
+    user, profile, issues, addComment, verifyIssue, isDemoAccount, setIsDemoModalOpen 
   } = useAppStore();
 
   const issue = issues.find((i) => i.id === issueId);
 
   const [commentText, setCommentText] = useState('');
   const [verificationNote, setVerificationNote] = useState('');
-  const [showOfficerControls, setShowOfficerControls] = useState(false);
-  const [officerNote, setOfficerNote] = useState('');
 
   if (!issue) {
     return (
@@ -77,32 +77,14 @@ export const IssueDetail: React.FC<IssueDetailProps> = ({ issueId, setCurrentTab
 
   const handlePostComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isDemoAccount) {
-      setIsDemoModalOpen(true);
-      return;
-    }
     if (!commentText.trim()) return;
     await addComment(issue.id, commentText.trim());
     setCommentText('');
   };
 
   const handleVerify = async () => {
-    if (isDemoAccount) {
-      setIsDemoModalOpen(true);
-      return;
-    }
     await verifyIssue(issue.id, verificationNote.trim() || undefined);
     setVerificationNote('');
-  };
-
-  const handleStatusUpdate = async (status: Issue['status']) => {
-    if (isDemoAccount) {
-      setIsDemoModalOpen(true);
-      return;
-    }
-    await updateIssueStatus(issue.id, status, officerNote.trim() || undefined);
-    setOfficerNote('');
-    setShowOfficerControls(false);
   };
 
   // Check if current user has already upvoted
@@ -134,8 +116,13 @@ export const IssueDetail: React.FC<IssueDetailProps> = ({ issueId, setCurrentTab
                   className="w-3 h-3 rounded-full" 
                   style={{ backgroundColor: getCategoryColor(issue.category) }} 
                 />
-                <span className="text-xs font-bold text-ink-secondary uppercase font-mono tracking-wide">
+                <span className="text-xs font-bold text-ink-secondary uppercase font-mono tracking-wide flex items-center gap-2">
                   {issue.category} Report
+                  {(issue as any).isDemo && (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded font-extrabold border border-amber-500/20 bg-amber-500/5 text-amber-600 dark:text-amber-400 normal-case tracking-wide">
+                      Demo
+                    </span>
+                  )}
                 </span>
               </div>
               
@@ -153,16 +140,24 @@ export const IssueDetail: React.FC<IssueDetailProps> = ({ issueId, setCurrentTab
             {(() => {
               const carouselImages: { url: string; label: string }[] = [];
               if (issue.resolvedMediaUrl) {
-                carouselImages.push({ url: issue.resolvedMediaUrl, label: 'Resolved (After Repair)' });
+                const url = issue.resolvedMediaUrl.includes('unsplash.com') 
+                  ? getIssuePlaceholderSvg(issue.category) 
+                  : issue.resolvedMediaUrl;
+                carouselImages.push({ url, label: 'Resolved (After Repair)' });
               }
               if (issue.mediaUrls && issue.mediaUrls.length > 0) {
                 // Ensure latest reported image is first
                 issue.mediaUrls.forEach((url, i) => {
-                  carouselImages.push({ url, label: `Reported Site Photo #${i + 1}` });
+                  const resolvedUrl = url.includes('unsplash.com')
+                    ? getIssuePlaceholderSvg(issue.category)
+                    : url;
+                  carouselImages.push({ url: resolvedUrl, label: `Reported Site Photo #${i + 1}` });
                 });
               }
 
-              if (carouselImages.length === 0) return null;
+              if (carouselImages.length === 0) {
+                carouselImages.push({ url: getIssuePlaceholderSvg(issue.category), label: 'Fallback Category Illustration' });
+              }
 
               // State for active carousel index
               const [activeImgIndex, setActiveImgIndex] = useState(0);
@@ -216,9 +211,10 @@ export const IssueDetail: React.FC<IssueDetailProps> = ({ issueId, setCurrentTab
             {/* Reported By block */}
             <div className="flex items-center gap-2.5 mb-6 text-xs text-ink-secondary">
               <img 
-                src={issue.reportedByPhoto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150'} 
+                src={getAvatarSvg(issue.reportedByName || 'User', issue.reportedBy)} 
                 alt={issue.reportedByName} 
                 className="w-6 h-6 rounded-full border border-brand-primary"
+                referrerPolicy="no-referrer"
               />
               <span>
                 Reported by <span className="font-semibold text-ink-primary">{issue.reportedByName}</span>
@@ -309,9 +305,10 @@ export const IssueDetail: React.FC<IssueDetailProps> = ({ issueId, setCurrentTab
                 issue.comments.map((c) => (
                   <div key={c.id} className="flex gap-3 text-left">
                     <img 
-                      src={c.userPhoto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150'} 
+                      src={getAvatarSvg(c.userName || 'User', c.userId)} 
                       alt={c.userName} 
                       className="w-7 h-7 rounded-full border border-ink-primary/10 shrink-0"
+                      referrerPolicy="no-referrer"
                     />
                     <div className="flex flex-col bg-bg-sunken/40 px-3.5 py-2 rounded-xl flex-1 max-w-[90%]">
                       <div className="flex items-center justify-between gap-2.5 mb-1">
@@ -350,11 +347,7 @@ export const IssueDetail: React.FC<IssueDetailProps> = ({ issueId, setCurrentTab
               <div className="flex flex-col gap-2 pt-2">
                 <button
                   onClick={() => {
-                    if (isDemoAccount) {
-                      setIsDemoModalOpen(true);
-                    } else {
-                      verifyIssue(issue.id);
-                    }
+                    verifyIssue(issue.id);
                   }}
                   disabled={hasUpvoted}
                   className={`w-full py-3 rounded-full text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
@@ -454,69 +447,6 @@ export const IssueDetail: React.FC<IssueDetailProps> = ({ issueId, setCurrentTab
 
             </div>
           </div>
-
-          {/* MUNICIPAL OFFICER CONTROLS (Only administrative officials can view/access) */}
-          {(() => {
-            const isAuthority = profile?.role === 'authority' || profile?.role === 'admin';
-            if (!isAuthority) return null;
-
-            return (
-              <div className="bg-bg-surface border border-status-critical/15 rounded-2xl shadow-sm p-5 flex flex-col gap-3 text-left animate-fadeIn">
-                <div className="flex items-center gap-1.5">
-                  <ShieldAlert size={16} className="text-status-critical shrink-0" />
-                  <h3 className="text-xs font-bold text-ink-primary uppercase tracking-wide">Inspector Control Console</h3>
-                </div>
-                
-                <p className="text-[11px] text-ink-secondary leading-relaxed font-light">
-                  Inspectors can update resolving status. Original reporter gets <span className="font-bold text-status-resolved font-mono">+100 XP</span> when status shifts to Resolved.
-                </p>
-
-                <div className="flex flex-col gap-2 mt-1">
-                  <button
-                    onClick={() => setShowOfficerControls(!showOfficerControls)}
-                    className="w-full py-2 bg-status-critical-bg text-status-critical hover:bg-status-critical/10 text-xs font-bold rounded-xl border border-status-critical/10 transition-all flex items-center justify-center gap-1 cursor-pointer"
-                  >
-                    <Edit3 size={12} />
-                    {showOfficerControls ? 'Hide Officer Console' : 'Access Officer Console'}
-                  </button>
-
-                  {showOfficerControls && (
-                    <div className="flex flex-col gap-2.5 pt-2 border-t border-ink-primary/5 mt-1 animate-fadeIn">
-                      <label className="text-[10px] font-bold text-ink-secondary uppercase">Progress Note</label>
-                      <textarea
-                        placeholder="e.g. Dispatched paving mixer truck #4..."
-                        value={officerNote}
-                        onChange={(e) => setOfficerNote(e.target.value)}
-                        rows={2}
-                        className="w-full text-xs p-2 bg-bg-sunken rounded border border-transparent focus:border-brand-primary/10 outline-none"
-                      />
-
-                      <div className="grid grid-cols-3 gap-1.5">
-                        <button
-                          onClick={() => handleStatusUpdate('open')}
-                          className="py-1.5 bg-bg-sunken text-ink-secondary hover:bg-ink-primary/10 text-[10px] font-bold rounded cursor-pointer"
-                        >
-                          Reset Open
-                        </button>
-                        <button
-                          onClick={() => handleStatusUpdate('in_progress')}
-                          className="py-1.5 bg-brand-light text-brand-primary hover:bg-brand-primary hover:text-white text-[10px] font-bold rounded transition-all cursor-pointer"
-                        >
-                          In Progress
-                        </button>
-                        <button
-                          onClick={() => handleStatusUpdate('resolved')}
-                          className="py-1.5 bg-status-resolved-bg text-status-resolved hover:bg-status-resolved hover:text-white text-[10px] font-bold rounded transition-all cursor-pointer"
-                        >
-                          Resolve (+100 XP)
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })()}
 
         </div>
 

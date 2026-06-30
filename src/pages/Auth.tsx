@@ -315,7 +315,7 @@ export const Auth: React.FC<AuthProps> = ({ setCurrentTab }) => {
                   <input
                     type="email"
                     required
-                    placeholder={role === 'authority' ? 'official@praxis.org' : 'you@example.com'}
+                    placeholder={role === 'authority' ? 'official.demo@praxis.org' : 'you@example.com'}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full text-xs pl-9 pr-4 py-3 bg-bg-sunken border border-transparent rounded-xl outline-none focus:border-brand-primary/15 focus:bg-bg-surface transition-all"
@@ -415,7 +415,7 @@ export const Auth: React.FC<AuthProps> = ({ setCurrentTab }) => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleQuickDemoLogin('official@praxis.org', 'Municipal Inspector', 'authority')}
+                  onClick={() => handleQuickDemoLogin('official.demo@praxis.org', 'Municipal Inspector', 'authority')}
                   disabled={loading}
                   className="py-2.5 px-3 border border-status-critical/20 hover:border-status-critical/40 bg-status-critical-bg/30 hover:bg-status-critical-bg/50 text-status-critical rounded-xl text-[11px] font-bold flex flex-col items-center justify-center gap-1 transition-all cursor-pointer text-center"
                 >

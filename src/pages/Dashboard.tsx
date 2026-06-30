@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAppStore } from '../store';
+import { getIssuePlaceholderSvg } from '../utils/issuePlaceholder';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { ThreeOverlay } from '../components/ThreeOverlay';
@@ -319,6 +320,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         {issue.category} • {new Date(issue.reportedAt).toLocaleDateString()}
                       </span>
                       <div className="flex items-center gap-1">
+                        {(issue as any).isDemo && (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded font-extrabold border border-amber-500/20 bg-amber-500/5 text-amber-600 dark:text-amber-400 uppercase tracking-wide">
+                            Demo
+                          </span>
+                        )}
                         <span className={`text-[9px] px-1.5 py-0.5 rounded font-extrabold border uppercase ${getSeverityBadge(issue.severity)}`}>
                           {issue.severity}
                         </span>
@@ -450,13 +456,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </button>
             </div>
 
-            {activePreviewIssue.mediaUrls && activePreviewIssue.mediaUrls[0] && (
-              <img 
-                src={activePreviewIssue.mediaUrls[0]} 
-                alt="Issue Thumb" 
-                className="w-full h-32 object-cover rounded-xl mb-3 border border-ink-primary/5"
-              />
-            )}
+            <img 
+              src={(activePreviewIssue.mediaUrls && activePreviewIssue.mediaUrls[0] && !activePreviewIssue.mediaUrls[0].includes('unsplash.com')) ? activePreviewIssue.mediaUrls[0] : getIssuePlaceholderSvg(activePreviewIssue.category)} 
+              alt="Issue Thumb" 
+              className="w-full h-32 object-cover rounded-xl mb-3 border border-ink-primary/5"
+            />
 
             <h3 className="font-display font-black text-base text-ink-primary tracking-tight leading-snug mb-1">
               {activePreviewIssue.title}

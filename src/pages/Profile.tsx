@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAppStore } from '../store';
 import { Shield, Award, MapPin, Calendar, Clock, Lock, CheckCircle2, ChevronRight } from 'lucide-react';
+import { getAvatarSvg } from '../utils/avatar';
 
 interface ProfileProps {
   setCurrentTab: (tab: string) => void;
@@ -35,12 +36,12 @@ export const Profile: React.FC<ProfileProps> = ({ setCurrentTab, setSelectedIssu
   const progressPercent = Math.min(100, Math.max(0, (xpInCurrentLevel / 500) * 100));
   const xpNeeded = 500 - xpInCurrentLevel;
 
-  const getLevelName = (level: number) => {
-    const names = [
-      'Resident', 'Observer', 'Advocate', 'Watchdog',
-      'Guardian', 'Champion', 'Hero', 'Legend'
-    ];
-    return names[Math.min(level - 1, 7)];
+  const getLevelName = (level: number, displayName?: string) => {
+    if (displayName) {
+      if (displayName.includes('Aniket Banerjee')) return 'Resident';
+      if (displayName.includes('Priyanka Das')) return 'Observer';
+    }
+    return level % 2 === 1 ? 'Resident' : 'Observer';
   };
 
   // Filter issues reported by this user
@@ -60,16 +61,17 @@ export const Profile: React.FC<ProfileProps> = ({ setCurrentTab, setSelectedIssu
             </div>
 
             <img
-              src={profile.photoURL || user.photoURL || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150'}
+              src={getAvatarSvg(profile.displayName || user.displayName || 'User', profile.email || user.email)}
               alt={profile.displayName}
-              className="w-20 h-20 rounded-full border-4 border-brand-light mx-auto mb-4 object-cover"
+              className="w-20 h-20 rounded-full border border-ink-primary/5 mx-auto mb-4 object-cover"
+              referrerPolicy="no-referrer"
             />
 
             <h2 className="font-display font-black text-xl text-ink-primary tracking-tight leading-none mb-1">
               {profile.displayName}
             </h2>
             <span className="text-xs font-mono font-bold text-brand-primary uppercase tracking-wide">
-              {getLevelName(currentLevel)} (Lvl {currentLevel})
+              {getLevelName(currentLevel, profile.displayName)} (Lvl {currentLevel})
             </span>
 
             <div className="flex items-center justify-center gap-1.5 text-[10px] text-ink-muted font-mono mt-3 mb-6">

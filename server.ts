@@ -1,6 +1,8 @@
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
+import http from 'http';
+import { WebSocketServer, WebSocket } from 'ws';
 import { GoogleGenAI } from '@google/genai';
 import { initializeApp } from 'firebase/app';
 import {
@@ -23,7 +25,93 @@ import {
 const app = express();
 const PORT = 3000;
 
+const server = http.createServer(app);
+const wss = new WebSocketServer({ noServer: true });
+
+const clients = new Set<WebSocket>();
+
+wss.on('connection', (ws) => {
+  clients.add(ws);
+  (ws as any).isAlive = true;
+
+  ws.on('pong', () => {
+    (ws as any).isAlive = true;
+  });
+
+  ws.on('close', () => {
+    clients.delete(ws);
+  });
+
+  ws.on('error', (err) => {
+    console.error('[WebSocket Server] Client error:', err);
+  });
+});
+
+// Ping interval (every 30s) to keep connections alive under proxies like Cloud Run
+const heartbeatInterval = setInterval(() => {
+  for (const ws of clients) {
+    if ((ws as any).isAlive === false) {
+      ws.terminate();
+      clients.delete(ws);
+      continue;
+    }
+    (ws as any).isAlive = false;
+    ws.ping();
+  }
+}, 30000);
+
+wss.on('close', () => {
+  clearInterval(heartbeatInterval);
+});
+
+server.on('upgrade', (request, socket, head) => {
+  const url = request.url || '';
+  const logFile = path.join(process.cwd(), 'server.log');
+  const logLine = `[${new Date().toISOString()}] UPGRADE request: ${url}\n`;
+  try {
+    fs.appendFileSync(logFile, logLine);
+  } catch (e) {}
+
+  // Handle all websocket upgrades (including /api/ws and /) to be fully backward-compatible
+  // and prevent client-side connection errors in stale/cached browser tabs.
+  wss.handleUpgrade(request, socket, head, (ws) => {
+    wss.emit('connection', ws, request);
+  });
+});
+
+function broadcast(type: string, data: any) {
+  const message = JSON.stringify({ type, data });
+  for (const client of clients) {
+    if (client.readyState === WebSocket.OPEN) {
+      try {
+        client.send(message);
+      } catch (err) {
+        console.error('Error sending message to client:', err);
+      }
+    }
+  }
+}
+
 app.use(express.json({ limit: '10mb' }));
+
+// Logger middleware
+app.use((req, res, next) => {
+  const logFile = path.join(process.cwd(), 'server.log');
+  const logLine = `[${new Date().toISOString()}] ${req.method} ${req.url}\n`;
+  try {
+    fs.appendFileSync(logFile, logLine);
+  } catch (e) {}
+  
+  const originalEnd = res.end;
+  res.end = function(chunk?: any, encoding?: any, callback?: any) {
+    try {
+      fs.appendFileSync(logFile, `  Response: ${res.statusCode} Content-Type: ${res.getHeader('content-type')}\n`);
+    } catch (e) {}
+    return originalEnd.call(this, chunk, encoding, callback);
+  };
+  
+  next();
+});
 
 // 1. Read and expose Firebase Config
 const configPath = path.join(process.cwd(), 'firebase-applet-config.json');
@@ -190,6 +278,7 @@ app.post('/api/users/sync', async (req, res) => {
 
   const normalizedEmail = (email || '').toLowerCase().trim();
   const APPROVED_OFFICIAL_EMAILS = [
+    'official.demo@praxis.org',
     'official@praxis.org',
     'admin@praxis.org',
     'dilip.dhara74@gmail.com',
@@ -330,7 +419,8 @@ app.post('/api/issues', async (req, res) => {
     reportedByPhoto,
     aiCategoryConfidence,
     aiTags,
-    aiDescription
+    aiDescription,
+    isDemo
   } = req.body;
 
   if (!title || !category || !severity || lat === undefined || lng === undefined) {
@@ -339,6 +429,16 @@ app.post('/api/issues', async (req, res) => {
 
   try {
     const now = Date.now();
+    const isDemoAccount = isDemo === true || 
+                          (reportedBy && String(reportedBy).startsWith('mock_')) || 
+                          reportedBy === 'citizen.demo@praxis.org' || 
+                          reportedBy === 'official.demo@praxis.org' || 
+                          reportedBy === 'official@praxis.org';
+
+    const finalReportedByName = isDemoAccount && reportedByName && !reportedByName.includes('(Demo)')
+      ? `${reportedByName} (Demo)`
+      : reportedByName || 'Anonymous Citizen';
+
     const newIssue = {
       title,
       description,
@@ -352,18 +452,19 @@ app.post('/api/issues', async (req, res) => {
       landmark: landmark || '',
       mediaUrls: mediaUrls || [],
       reportedBy: reportedBy || 'anonymous',
-      reportedByName: reportedByName || 'Anonymous Citizen',
+      reportedByName: finalReportedByName,
       reportedByPhoto: reportedByPhoto || '',
       reportedAt: now,
       upvoteCount: 0,
       upvotedBy: [],
       verifications: [],
+      isDemo: isDemoAccount,
       timeline: [
         {
           event: 'reported',
           ts: now,
           userId: reportedBy || 'anonymous',
-          userName: reportedByName || 'Anonymous Citizen',
+          userName: finalReportedByName,
           note: 'Issue reported to Praxis platform.'
         }
       ],
@@ -378,7 +479,14 @@ app.post('/api/issues', async (req, res) => {
       await awardXP(reportedBy, 50, 'report');
     }
 
-    res.status(201).json({ id: docRef.id, ...newIssue });
+    const createdIssue = { id: docRef.id, ...newIssue };
+    try {
+      broadcast('ISSUE_CREATED', createdIssue);
+    } catch (err) {
+      console.error('Error broadcasting ISSUE_CREATED:', err);
+    }
+
+    res.status(201).json(createdIssue);
   } catch (error: any) {
     console.error('Error creating issue:', error);
     res.status(500).json({ error: error.message });
@@ -387,7 +495,7 @@ app.post('/api/issues', async (req, res) => {
 
 // POST /api/issues/:id/comments
 app.post('/api/issues/:id/comments', async (req, res) => {
-  const { userId, userName, userPhoto, text } = req.body;
+  const { userId, userName, userPhoto, text, isDemo } = req.body;
   if (!userId || !text) {
     return res.status(400).json({ error: 'Missing text or userId' });
   }
@@ -401,13 +509,23 @@ app.post('/api/issues/:id/comments', async (req, res) => {
 
     const currentData = snap.data() || {};
     const comments = currentData.comments || [];
+    
+    const isDemoAccount = isDemo === true || 
+                          (userId && String(userId).startsWith('mock_')) || 
+                          userName?.includes('Demo');
+
+    const finalUserName = isDemoAccount && userName && !userName.includes('(Demo)')
+      ? `${userName} (Demo)`
+      : userName || 'Anonymous';
+
     const newComment = {
       id: Math.random().toString(36).substring(2, 9),
       userId,
-      userName: userName || 'Anonymous',
+      userName: finalUserName,
       userPhoto: userPhoto || '',
       text,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      isDemo: isDemoAccount
     };
     
     comments.push(newComment);
@@ -417,11 +535,17 @@ app.post('/api/issues/:id/comments', async (req, res) => {
       event: 'commented',
       ts: Date.now(),
       userId,
-      userName: userName || 'Anonymous',
-      note: `Added comment: "${text.substring(0, 30)}..."`
-    });
+      userName: finalUserName,
+      note: `Added comment: "${text.substring(0, 30)}..."`,
+      isDemo: isDemoAccount
+    } as any);
 
     await updateDoc(issueRef, { comments, timeline });
+    try {
+      broadcast('COMMENT_ADDED', { issueId: req.params.id, comment: newComment });
+    } catch (err) {
+      console.error('Error broadcasting COMMENT_ADDED:', err);
+    }
     res.json(newComment);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -430,7 +554,7 @@ app.post('/api/issues/:id/comments', async (req, res) => {
 
 // PATCH /api/issues/:id/verify (Upvote / Verify)
 app.patch('/api/issues/:id/verify', async (req, res) => {
-  const { userId, userName, note, mediaUrl } = req.body;
+  const { userId, userName, note, mediaUrl, isDemo } = req.body;
   if (!userId) {
     return res.status(400).json({ error: 'Missing userId' });
   }
@@ -444,6 +568,14 @@ app.patch('/api/issues/:id/verify', async (req, res) => {
 
     const currentData = snap.data() || {};
     const upvotedBy = currentData.upvotedBy || [];
+
+    const isDemoAccount = isDemo === true || 
+                          (userId && String(userId).startsWith('mock_')) || 
+                          userName?.includes('Demo');
+
+    const finalUserName = isDemoAccount && userName && !userName.includes('(Demo)')
+      ? `${userName} (Demo)`
+      : userName || 'Verified Citizen';
 
     // If already upvoted, we skip upvoting, but can verify if they added a note/photo
     let awardAmount = 0;
@@ -460,10 +592,11 @@ app.patch('/api/issues/:id/verify', async (req, res) => {
       const verifications = currentData.verifications || [];
       const newVerification = {
         uid: userId,
-        userName: userName || 'Verified Citizen',
+        userName: finalUserName,
         ts: Date.now(),
         note: note || 'Issue verified in-person',
-        mediaUrl: mediaUrl || ''
+        mediaUrl: mediaUrl || '',
+        isDemo: isDemoAccount
       };
       verifications.push(newVerification);
       updates.verifications = verifications;
@@ -473,9 +606,10 @@ app.patch('/api/issues/:id/verify', async (req, res) => {
         event: 'verified',
         ts: Date.now(),
         userId,
-        userName: userName || 'Verified Citizen',
-        note: `Physically verified this report. Note: ${note || 'Verified'}`
-      });
+        userName: finalUserName,
+        note: `Physically verified this report. Note: ${note || 'Verified'}`,
+        isDemo: isDemoAccount
+      } as any);
       updates.timeline = timeline;
 
       awardAmount += 25; // Physical verification bonus XP
@@ -489,7 +623,13 @@ app.patch('/api/issues/:id/verify', async (req, res) => {
     }
 
     const updatedSnap = await getDoc(issueRef);
-    res.json({ id: updatedSnap.id, ...updatedSnap.data() });
+    const updatedData = { id: updatedSnap.id, ...updatedSnap.data() };
+    try {
+      broadcast('ISSUE_VERIFIED', updatedData);
+    } catch (err) {
+      console.error('Error broadcasting ISSUE_VERIFIED:', err);
+    }
+    res.json(updatedData);
   } catch (error: any) {
     console.error('Error verifying issue:', error);
     res.status(500).json({ error: error.message });
@@ -498,7 +638,7 @@ app.patch('/api/issues/:id/verify', async (req, res) => {
 
 // PATCH /api/issues/:id/status
 app.patch('/api/issues/:id/status', async (req, res) => {
-  const { status, note, userId, userName } = req.body;
+  const { status, note, userId, userName, isDemo } = req.body;
   if (!status) {
     return res.status(400).json({ error: 'Missing status' });
   }
@@ -513,14 +653,23 @@ app.patch('/api/issues/:id/status', async (req, res) => {
     const currentData = snap.data() || {};
     const now = Date.now();
     
+    const isDemoAccount = isDemo === true || 
+                          (userId && String(userId).startsWith('mock_')) || 
+                          userName?.includes('Demo');
+
+    const finalUserName = isDemoAccount && userName && !userName.includes('(Demo)')
+      ? `${userName} (Demo)`
+      : userName || 'Municipal Officer';
+
     const timeline = currentData.timeline || [];
     timeline.push({
       event: 'status_changed',
       ts: now,
       userId: userId || 'authority',
-      userName: userName || 'Municipal Officer',
-      note: `Status updated to [${status.replace('_', ' ').toUpperCase()}]. Reason: ${note || 'Routine inspection.'}`
-    });
+      userName: finalUserName,
+      note: `Status updated to [${status.replace('_', ' ').toUpperCase()}]. Reason: ${note || 'Routine inspection.'}`,
+      isDemo: isDemoAccount
+    } as any);
 
     const updates: any = {
       status,
@@ -540,7 +689,13 @@ app.patch('/api/issues/:id/status', async (req, res) => {
     await updateDoc(issueRef, updates);
 
     const updatedSnap = await getDoc(issueRef);
-    res.json({ id: updatedSnap.id, ...updatedSnap.data() });
+    const updatedData = { id: updatedSnap.id, ...updatedSnap.data() };
+    try {
+      broadcast('ISSUE_STATUS_UPDATED', updatedData);
+    } catch (err) {
+      console.error('Error broadcasting ISSUE_STATUS_UPDATED:', err);
+    }
+    res.json(updatedData);
   } catch (error: any) {
     console.error('Error updating status:', error);
     res.status(500).json({ error: error.message });
@@ -1161,6 +1316,16 @@ async function seedDatabaseIfEmpty() {
 // Invoke seeding
 seedDatabaseIfEmpty();
 
+// Global error handler
+app.use((err: any, req: any, res: any, next: any) => {
+  const logFile = path.join(process.cwd(), 'server.log');
+  const errorLog = `[${new Date().toISOString()}] ERROR: ${err.message}\nStack: ${err.stack}\n`;
+  try {
+    fs.appendFileSync(logFile, errorLog);
+  } catch (e) {}
+  res.status(500).json({ error: err.message, stack: err.stack });
+});
+
 // Production file serving setup
 if (process.env.NODE_ENV !== 'production') {
   import('vite').then(async (viteModule) => {
@@ -1178,6 +1343,9 @@ if (process.env.NODE_ENV !== 'production') {
   });
 }
 
-app.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`Praxis backend listening on http://localhost:${PORT}`);
+  try {
+    fs.appendFileSync(path.join(process.cwd(), 'server.log'), `[${new Date().toISOString()}] Server started successfully on port ${PORT}\n`);
+  } catch (e) {}
 });

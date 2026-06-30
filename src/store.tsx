@@ -5,6 +5,7 @@ import {
 } from 'firebase/auth';
 import { googleProvider } from './firebase';
 import { Issue, UserProfile } from './types';
+import { getAvatarSvg } from './utils/avatar';
 
 interface AppContextType {
   user: User | null;
@@ -39,7 +40,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const isDemoAccount = !!user && (
     localStorage.getItem('praxis_is_demo') === 'true' ||
     user.email === 'citizen.demo@praxis.org' ||
-    user.email === 'official@praxis.org'
+    user.email === 'official.demo@praxis.org'
   );
 
   // Sync user profile from Express backend
@@ -56,13 +57,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           requestedRole,
         }),
       });
+      
+      const contentType = response.headers.get('content-type');
+      const isJson = contentType && contentType.includes('application/json');
+
       if (response.ok) {
-        const data = await response.json();
-        setProfile(data);
-        return data;
+        if (isJson) {
+          const data = await response.json();
+          setProfile(data);
+          return data;
+        } else {
+          const text = await response.text();
+          throw new Error(`Server returned unexpected non-JSON response: ${text.substring(0, 100)}`);
+        }
       } else {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to sync with server');
+        if (isJson) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `Server error with status ${response.status}`);
+        } else {
+          const text = await response.text();
+          throw new Error(`Server error (${response.status}): ${text.substring(0, 100)}`);
+        }
       }
     } catch (err: any) {
       console.error('Error syncing user with backend:', err);
@@ -102,11 +117,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           const supabase = getSupabase();
           supabase.auth.getSession().then(async ({ data: { session } }) => {
             if (session?.user) {
+              const displayName = session.user.user_metadata?.displayName || session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User';
               const mappedUser = {
                 uid: session.user.id,
-                displayName: session.user.user_metadata?.displayName || session.user.user_metadata?.name || session.user.email?.split('@')[0],
+                displayName,
                 email: session.user.email,
-                photoURL: session.user.user_metadata?.photoURL || session.user.user_metadata?.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150',
+                photoURL: session.user.user_metadata?.photoURL || session.user.user_metadata?.avatar_url || getAvatarSvg(displayName, session.user.email),
                 emailVerified: !!session.user.email_confirmed_at,
               } as any;
               setUser(mappedUser);
@@ -213,6 +229,118 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   useEffect(() => {
     refreshIssues();
+
+    let ws: WebSocket | null = null;
+    let reconnectTimeout: any = null;
+    let isMounted = true;
+
+    const connectWebSocket = () => {
+      if (!isMounted) return;
+
+      try {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/api/ws`;
+        console.log('[WebSocket] Connecting to:', wsUrl);
+        
+        ws = new WebSocket(wsUrl);
+
+        ws.onopen = () => {
+          console.log('[WebSocket] Connected successfully.');
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const message = JSON.parse(event.data);
+            console.log('[WebSocket] Received message:', message);
+
+            if (message.type === 'ISSUE_CREATED') {
+              const newIssue = message.data;
+              setIssues(prev => {
+                if (prev.some(i => i.id === newIssue.id)) return prev;
+                return [newIssue, ...prev];
+              });
+            } else if (message.type === 'COMMENT_ADDED') {
+              const { issueId, comment } = message.data;
+              setIssues(prev => prev.map(issue => {
+                if (issue.id === issueId) {
+                  const comments = issue.comments || [];
+                  if (comments.some(c => c.id === comment.id)) return issue;
+
+                  const timeline = issue.timeline || [];
+                  const existsTimeline = timeline.some(t => t.event === 'commented' && t.ts === comment.createdAt && t.userId === comment.userId);
+                  const updatedTimeline = existsTimeline ? timeline : [
+                    ...timeline,
+                    {
+                      event: 'commented',
+                      ts: comment.createdAt,
+                      userId: comment.userId,
+                      userName: comment.userName,
+                      note: `Added comment: "${comment.text.substring(0, 30)}..."`,
+                      isDemo: comment.isDemo
+                    }
+                  ];
+
+                  return {
+                    ...issue,
+                    comments: [...comments, comment],
+                    timeline: updatedTimeline
+                  };
+                }
+                return issue;
+              }));
+            } else if (message.type === 'ISSUE_VERIFIED') {
+              const updatedIssue = message.data;
+              setIssues(prev => prev.map(issue => {
+                if (issue.id === updatedIssue.id) {
+                  return { ...issue, ...updatedIssue };
+                }
+                return issue;
+              }));
+            } else if (message.type === 'ISSUE_STATUS_UPDATED') {
+              const updatedIssue = message.data;
+              setIssues(prev => prev.map(issue => {
+                if (issue.id === updatedIssue.id) {
+                  return { ...issue, ...updatedIssue };
+                }
+                return issue;
+              }));
+            } else {
+              refreshIssues();
+            }
+          } catch (err) {
+            console.warn('[WebSocket] Error parsing message:', err);
+          }
+        };
+
+        ws.onerror = (err) => {
+          console.warn('[WebSocket] Error:', err);
+        };
+
+        ws.onclose = () => {
+          console.log('[WebSocket] Connection closed. Reconnecting in 3s...');
+          if (isMounted) {
+            reconnectTimeout = setTimeout(connectWebSocket, 3000);
+          }
+        };
+      } catch (err) {
+        console.warn('[WebSocket] Initialization failed:', err);
+        if (isMounted) {
+          reconnectTimeout = setTimeout(connectWebSocket, 3000);
+        }
+      }
+    };
+
+    connectWebSocket();
+
+    return () => {
+      isMounted = false;
+      if (ws) {
+        ws.close();
+      }
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+    };
   }, []);
 
   const login = async () => {
@@ -256,17 +384,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const cleanEmail = email.toLowerCase().trim();
       
       // Fallback for Demo Account
-      if (localStorage.getItem('praxis_is_demo') === 'true' || cleanEmail === 'citizen.demo@praxis.org' || cleanEmail === 'official@praxis.org') {
+      if (localStorage.getItem('praxis_is_demo') === 'true' || cleanEmail === 'citizen.demo@praxis.org' || cleanEmail === 'official.demo@praxis.org') {
         console.warn('Fallback to secure local mock auth session.');
         const deterministicUid = 'mock_' + btoa(cleanEmail).replace(/[^a-zA-Z0-9]/g, '').slice(0, 20);
         
+        const displayName = cleanEmail.split('@')[0];
         const mockUser = {
           uid: deterministicUid,
-          displayName: cleanEmail.split('@')[0],
+          displayName,
           email: cleanEmail,
-          photoURL: role === 'authority' 
-            ? 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=150'
-            : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150',
+          photoURL: getAvatarSvg(displayName, cleanEmail),
           emailVerified: true,
           isAnonymous: false,
           role
@@ -289,11 +416,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       if (data.user) {
         localStorage.setItem('praxis_auth_provider', 'supabase');
+        const displayName = data.user.user_metadata?.displayName || data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'User';
         const mappedUser = {
           uid: data.user.id,
-          displayName: data.user.user_metadata?.displayName || data.user.user_metadata?.name || data.user.email?.split('@')[0],
+          displayName,
           email: data.user.email,
-          photoURL: data.user.user_metadata?.photoURL || data.user.user_metadata?.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150',
+          photoURL: data.user.user_metadata?.photoURL || data.user.user_metadata?.avatar_url || getAvatarSvg(displayName, data.user.email),
           emailVerified: !!data.user.email_confirmed_at,
         } as any;
 
@@ -327,9 +455,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           uid: deterministicUid,
           displayName: name,
           email: cleanEmail,
-          photoURL: role === 'authority' 
-            ? 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=150'
-            : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150',
+          photoURL: getAvatarSvg(name, cleanEmail),
           emailVerified: true,
           isAnonymous: false,
           role
@@ -370,7 +496,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           uid: data.user.id,
           displayName: name,
           email: data.user.email,
-          photoURL: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150',
+          photoURL: getAvatarSvg(name, data.user.email),
           emailVerified: !!data.user.email_confirmed_at,
         } as any;
 
@@ -422,7 +548,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           userId: user.uid,
           userName: user.displayName || 'Anonymous Citizen',
           userPhoto: user.photoURL || '',
-          text
+          text,
+          isDemo: isDemoAccount
         }),
       });
       if (response.ok) {
@@ -443,13 +570,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           userId: user.uid,
           userName: user.displayName || 'Verified Citizen',
           note,
-          mediaUrl
+          mediaUrl,
+          isDemo: isDemoAccount
         }),
       });
       if (response.ok) {
         await refreshIssues();
         // Refresh profile to reflect newly awarded XP
-        if (user) await syncUserWithBackend(user);
+        if (user) await syncUserWithBackend(user, profile?.role || 'citizen');
       }
     } catch (error) {
       console.error('Error verifying issue:', error);
@@ -467,12 +595,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           note,
           userId: user.uid,
           userName: user.displayName || 'Municipal Authority',
-          resolvedMediaUrl
+          resolvedMediaUrl,
+          isDemo: isDemoAccount
         }),
       });
       if (response.ok) {
         await refreshIssues();
-        if (user) await syncUserWithBackend(user);
+        if (user) await syncUserWithBackend(user, profile?.role || 'citizen');
       }
     } catch (error) {
       console.error('Error updating status:', error);

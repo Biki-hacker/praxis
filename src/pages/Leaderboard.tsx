@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../store';
 import { Award, Zap, Trophy, Shield, User, Loader2, RefreshCw } from 'lucide-react';
+import { getAvatarSvg } from '../utils/avatar';
 
 export const Leaderboard: React.FC = () => {
   const { user } = useAppStore();
@@ -26,12 +27,12 @@ export const Leaderboard: React.FC = () => {
     fetchLeaderboard();
   }, []);
 
-  const getLevelName = (level: number) => {
-    const names = [
-      'Resident', 'Observer', 'Advocate', 'Watchdog',
-      'Guardian', 'Champion', 'Hero', 'Legend'
-    ];
-    return names[Math.min(level - 1, 7)];
+  const getLevelName = (level: number, displayName?: string) => {
+    if (displayName) {
+      if (displayName.includes('Aniket Banerjee')) return 'Resident';
+      if (displayName.includes('Priyanka Das')) return 'Observer';
+    }
+    return level % 2 === 1 ? 'Resident' : 'Observer';
   };
 
   const getRankBadge = (index: number) => {
@@ -99,9 +100,10 @@ export const Leaderboard: React.FC = () => {
                   {/* Profile Info */}
                   <div className="col-span-6 md:col-span-7 flex items-center gap-3">
                     <img
-                      src={player.photoURL || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150'}
+                      src={getAvatarSvg(player.displayName || 'User', player.email || player.uid)}
                       alt={player.displayName}
                       className="w-9 h-9 rounded-full border border-ink-primary/5 shrink-0"
+                      referrerPolicy="no-referrer"
                     />
                     <div className="flex flex-col min-w-0">
                       <span className="text-sm font-bold text-ink-primary truncate">
@@ -111,7 +113,7 @@ export const Leaderboard: React.FC = () => {
                         )}
                       </span>
                       <span className="text-[10px] text-ink-muted uppercase font-bold tracking-wide">
-                        {getLevelName(player.level || 1)}
+                        {getLevelName(player.level || 1, player.displayName)}
                       </span>
                     </div>
                   </div>

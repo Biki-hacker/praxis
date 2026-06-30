@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../store';
+import { getIssuePlaceholderSvg } from '../utils/issuePlaceholder';
 import { 
   UserCheck, MapPin, Calendar, Clock, CheckCircle2, ArrowRight, Sparkles, 
   ThumbsUp, ShieldAlert, ChevronRight, CheckCircle, AlertCircle, FileText
@@ -38,8 +39,11 @@ export const CitizenConsole: React.FC<CitizenConsoleProps> = ({ setCurrentTab, s
   }
 
   // Filter issues created by the current user
-  // (In our store or firebase, issues can be matched via email or we show all citizen-logged issues for simulation, let's filter by matching user's email if possible, or show their reports)
-  const myIssues = issues.filter(issue => issue.reportedBy === user.email || issue.reportedBy === user.displayName);
+  const myIssues = issues.filter(issue => 
+    issue.reportedBy === user.uid || 
+    issue.reportedBy === user.email || 
+    issue.reportedBy === user.displayName
+  );
 
   return (
     <div className="max-w-7xl mx-auto w-full px-4 py-8 text-left">
@@ -135,7 +139,10 @@ export const CitizenConsole: React.FC<CitizenConsoleProps> = ({ setCurrentTab, s
                   </span>
                 </div>
                 <button
-                  onClick={() => setSelectedIssueId(selectedIssue.id)}
+                  onClick={() => {
+                    setSelectedIssueId(selectedIssue.id);
+                    setCurrentTab('issue-detail');
+                  }}
                   className="px-3 py-1.5 bg-bg-sunken hover:bg-bg-elevated text-ink-secondary text-[10px] font-bold rounded-full transition-all flex items-center gap-1 cursor-pointer"
                 >
                   Deep Dive <ChevronRight size={12} />
@@ -146,17 +153,11 @@ export const CitizenConsole: React.FC<CitizenConsoleProps> = ({ setCurrentTab, s
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <span className="text-[9px] font-mono font-bold text-ink-muted uppercase block mb-1.5">Original Citizen Report</span>
-                  {selectedIssue.mediaUrls?.[0] ? (
-                    <img 
-                      src={selectedIssue.mediaUrls[0]} 
-                      alt="Before" 
-                      className="w-full h-36 object-cover rounded-2xl border border-ink-primary/5"
-                    />
-                  ) : (
-                    <div className="w-full h-36 bg-bg-sunken border border-ink-primary/5 rounded-2xl flex items-center justify-center text-xs text-ink-muted">
-                      No Photo Provided
-                    </div>
-                  )}
+                  <img 
+                    src={(selectedIssue.mediaUrls?.[0] && !selectedIssue.mediaUrls[0].includes('unsplash.com')) ? selectedIssue.mediaUrls[0] : getIssuePlaceholderSvg(selectedIssue.category)} 
+                    alt="Before" 
+                    className="w-full h-36 object-cover rounded-2xl border border-ink-primary/5"
+                  />
                 </div>
 
                 <div>
