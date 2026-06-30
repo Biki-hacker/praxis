@@ -306,7 +306,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   onClick={() => handleCardClick(issue)}
                   className={`bg-bg-surface border ${
                     isSelected ? 'border-brand-primary ring-2 ring-brand-primary/15' : 'border-ink-primary/5 hover:border-ink-primary/15'
-                  } rounded-xl shadow-sm p-4 text-left transition-all duration-300 cursor-pointer hover:-translate-y-0.5 flex flex-col relative overflow-hidden`}
+                  } rounded-xl shadow-sm p-4 text-left transition-all duration-300 cursor-pointer hover:-translate-y-0.5 flex flex-col relative overflow-hidden shrink-0`}
                 >
                   {/* Category Side Indicator */}
                   <div 

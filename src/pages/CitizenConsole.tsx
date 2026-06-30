@@ -76,7 +76,7 @@ export const CitizenConsole: React.FC<CitizenConsoleProps> = ({ setCurrentTab, s
                 <div
                   key={issue.id}
                   onClick={() => setSelectedIssue(issue)}
-                  className={`p-4 rounded-2xl border text-left cursor-pointer transition-all ${
+                  className={`p-4 rounded-2xl border text-left cursor-pointer transition-all shrink-0 ${
                     isSelected
                       ? 'border-brand-primary bg-brand-light/40 shadow-md scale-[1.01]'
                       : 'border-ink-primary/5 bg-bg-surface hover:bg-bg-sunken/40 shadow-sm'

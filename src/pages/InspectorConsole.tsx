@@ -284,7 +284,7 @@ export const InspectorConsole: React.FC<InspectorConsoleProps> = ({ setCurrentTa
                     setVerificationResult(null);
                     setOfficerNote('');
                   }}
-                  className={`p-4 rounded-2xl border text-left cursor-pointer transition-all ${
+                  className={`p-4 rounded-2xl border text-left cursor-pointer transition-all shrink-0 ${
                     isSelected
                       ? 'border-status-critical bg-status-critical-bg/20 shadow-md scale-[1.01]'
                       : 'border-ink-primary/5 bg-bg-surface hover:bg-bg-sunken/40 shadow-sm'
