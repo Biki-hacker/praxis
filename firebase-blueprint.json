@@ -1,0 +1,65 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User account containing levels, XP, and badges for gamified civic contributions.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "role": { "type": "string" },
+        "xp": { "type": "integer" },
+        "level": { "type": "integer" },
+        "badges": { "type": "array" },
+        "issuesReported": { "type": "integer" },
+        "issuesVerified": { "type": "integer" },
+        "issuesResolved": { "type": "integer" },
+        "joinedAt": { "type": "integer" },
+        "streak": { "type": "integer" }
+      },
+      "required": ["uid"]
+    },
+    "Issue": {
+      "title": "Civic Issue",
+      "description": "A reported civic problem containing location details, photos, upvotes, and status timeline.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "aiDescription": { "type": "string" },
+        "category": { "type": "string" },
+        "severity": { "type": "string" },
+        "status": { "type": "string" },
+        "lat": { "type": "number" },
+        "lng": { "type": "number" },
+        "address": { "type": "string" },
+        "landmark": { "type": "string" },
+        "mediaUrls": { "type": "array" },
+        "reportedBy": { "type": "string" },
+        "reportedByName": { "type": "string" },
+        "reportedByPhoto": { "type": "string" },
+        "reportedAt": { "type": "integer" },
+        "upvoteCount": { "type": "integer" },
+        "upvotedBy": { "type": "array" },
+        "verifications": { "type": "array" },
+        "timeline": { "type": "array" },
+        "aiCategoryConfidence": { "type": "number" },
+        "aiTags": { "type": "array" },
+        "comments": { "type": "array" }
+      },
+      "required": ["title", "category", "severity", "lat", "lng"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile collection"
+    },
+    "/issues/{issueId}": {
+      "schema": "Issue",
+      "description": "Hyperlocal issues reported by citizens"
+    }
+  }
+}

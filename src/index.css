@@ -1,0 +1,136 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Fraunces", Georgia, serif;
+  --font-sans: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  /* Color Palette - Sophisticated Dark */
+  --color-bg-base: #050505;
+  --color-bg-surface: #0A0A0A;
+  --color-bg-elevated: #0F0F0F;
+  --color-bg-sunken: #141414;
+
+  --color-ink-primary: #E0E0E0;
+  --color-ink-secondary: #888888;
+  --color-ink-muted: #555555;
+  --color-ink-disabled: #222222;
+
+  --color-brand-primary: #FFFFFF;
+  --color-brand-light: #1A1A1A;
+  --color-brand-dark: #CCCCCC;
+
+  --color-status-open: #F27D26;
+  --color-status-open-bg: #1A0E06;
+  --color-status-progress: #3AABDB;
+  --color-status-progress-bg: #0B1920;
+  --color-status-resolved: #4CAF50;
+  --color-status-resolved-bg: #0A1F0C;
+  --color-status-critical: #F44336;
+  --color-status-critical-bg: #1E0A08;
+
+  --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-marquee: marquee 30s linear infinite;
+}
+
+@layer utilities {
+  .serif {
+    font-family: var(--font-display);
+    font-style: italic;
+  }
+}
+
+/* Custom CSS overrides to ensure standard classes match Sophisticated Dark */
+.bg-white {
+  background-color: var(--color-bg-surface) !important;
+}
+
+.bg-white\/90, .bg-white\/95 {
+  background-color: rgba(10, 10, 10, 0.95) !important;
+}
+
+.border-white\/40 {
+  border-color: rgba(224, 224, 224, 0.15) !important;
+}
+
+.bg-white\/20 {
+  background-color: rgba(10, 10, 10, 0.4) !important;
+}
+
+.bg-brand-primary {
+  background-color: var(--color-brand-primary) !important;
+  color: #050505 !important;
+}
+
+.bg-brand-primary svg, .bg-brand-primary span {
+  color: #050505 !important;
+}
+
+.bg-brand-primary svg {
+  stroke: #050505 !important;
+}
+
+.hover\:bg-brand-dark:hover {
+  background-color: var(--color-brand-dark) !important;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-bg-base);
+    color: var(--color-ink-primary);
+    font-family: var(--font-sans);
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+  }
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+
+/* Custom CSS Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-bg-base);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-ink-disabled);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-ink-muted);
+}
+
+/* Leaflet map styles */
+.leaflet-container {
+  font-family: var(--font-sans) !important;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* Custom Marker Pulse Keyframe */
+@keyframes markerPulse {
+  0% { transform: scale(0.9); opacity: 0.9; }
+  50% { transform: scale(1.15); opacity: 0.4; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+
+.marker-pulse {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: rgba(45, 91, 227, 0.4);
+  animation: markerPulse 2s infinite ease-out;
+  pointer-events: none;
+}
